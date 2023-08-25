@@ -76,119 +76,6 @@ class Shipment_cost extends RestController
         return $customer;
     }
 
-    private function checkPackingType($packingTypeCode)
-    {
-        $packingType = $this->cost_m->getPacking($packingTypeCode)->row();
-        if (!$packingType) {
-            return false;
-        }
-
-        return $packingType;
-    }
-
-    // private function checkInsurance($insuranceAdminCost = 0, $insuranceCost = 0, $post)
-    // {
-    //     $insuranceType = $this->cost_m->getInsurance($post["insurance_type_code"]);
-    //     if (!$insuranceType) {
-    //         return false;
-    //     }
-
-    //     return $insuranceType;
-    // }
-
-    private function insurancePercentage($post)
-    {
-        $insurancePercentage = $this->cost_m->getInsurancePercentage($post["customer_code"])->row();
-        $percentage = 0.3;
-
-        if (isset($insurancePercentage->insurance_percentage) && ($insurancePercentage->insurance_percentage >= 0 || $insurancePercentage->insurance_percentage !== null)) {
-            $percentage = $insurancePercentage->insurance_percentage;
-
-            return $percentage;
-        }
-
-        return false;
-    }
-
-    // private function getContractShipment()
-    // {
-    //     $flag_shipment_cost = $this->_apiuser->flag_shipment_cost;
-    //     $shipment_cost = $this->cost_m->publishActive()->row();
-
-    //     $is_discount = false;
-    //     $is_special = false;
-    //     $contract = [];
-    //     $customerCode = $this->checkCustomerCode($this->postIn());
-
-    //     if ($flag_shipment_cost === 1) {
-    //         $shipment_cost_id = $shipment_cost->shipment_cost_id;
-    //     } else if ($flag_shipment_cost === 2) {
-    //         // $contract = $this->cost_m->getContractPublish($customerCode, 1);
-    //         $contract = $this->db->get_where("tb_contract", ["customer_code" => $customerCode, "rowstate" => "ACTIVE", "price_flag" => "1"])->row();
-    //         if (!$contract) {
-    //             return false;
-    //         }
-
-    //         $shipment_cost_id = $contract->shipment_cost_id;
-    //     } else if ($flag_shipment_cost === 3) {
-    //         // $contract = $this->cost_m->getContractPublish($customerCode, 1);
-    //         $contract = $this->db->get_where("tb_contract", ["customer_code" => $customerCode, "rowstate" => "ACTIVE", "price_flag" => "1"])->row();
-    //         if (!$contract) {
-    //             return false;
-    //         }
-
-    //         $is_discount = true;
-    //         $shipment_cost_id = $shipment_cost->shipment_cost_id;
-    //     } else {
-    //         $is_special = true;
-    //         // $contract = $this->cost_m->getContractPublish($customerCode, 2);
-    //         $contract = $this->db->get_where("tb_contract", ["customer_code" => $customerCode, "rowstate" => "ACTIVE", "price_flag" => "2"])->row();
-    //         if (!$contract) {
-    //             return false;
-    //         }
-
-    //         $shipment_cost_id = $contract->shipment_cost_id;
-    //     }
-
-    //     if ($is_special === false) {
-    //         // get origin district code
-    //         $orgDistrictCode = ($this->checkOriginDistrict($this->postIn())) ? $this->checkOriginDistrict($this->postIn()) : false;
-
-    //         // get destination district code
-    //         $destDistrictCode = ($this->checkDestinationDistrict($this->postIn())) ? $this->checkDestinationDistrict($this->postIn()) : false;
-
-    //         if ($orgDistrictCode === false || $destDistrictCode === false) {
-    //             return false;
-    //         }
-
-    //         $getShipment = $this->cost_m->getPublish($orgDistrictCode->district_code, $destDistrictCode->district_code, $shipment_cost_id)->result();
-    //     } else {
-    //         $getShipment = $this->cost_m->getSpecial($orgDistrictCode->district_code, $destDistrictCode->district_code, $shipment_cost_id)->result();
-    //     }
-
-    //     if (count($getShipment) < 1) {
-    //         return false;
-    //     }
-
-    //     return ["shipmentCost" => $getShipment, "contract" => $contract, "is_discount" => $is_discount];
-    // }
-
-    private function getDiscount($contract, $service_type_code)
-    {
-        // foreach ($contract as $key => $value) {
-        if ($service_type_code == 'UDRREG') {
-            $discount =  $contract->udrreg_discount;
-        } else if ($service_type_code == 'UDRONS') {
-            $discount =  $contract->udrons_discount;
-        } else if ($service_type_code == 'UDRSDS') {
-            $discount =  $contract->udrsds_discount;
-        } else { //jika DRGREG CARGO
-            $discount = $contract->drgreg_discount;
-        }
-
-        return $discount;
-    }
-
     public function test_post()
     {
         $data = [];
@@ -197,115 +84,6 @@ class Shipment_cost extends RestController
             "data" => $data
         ]);
     }
-
-    // public function index_post()
-    // {
-    //     try {
-    //         if ($this->inputValidation($this->postIn())) {
-    //             if ($this->getContractShipment() !== false) {
-    //                 $data = [];
-    //                 $weight = round_kg($this->postIn()["weight"]);
-    //                 foreach ($this->getContractShipment()->shipmentCost as $value) {
-    //                     $services = $this->cost_m->getServiceDetail($value->service_type_code);
-
-    //                     $data["origin"] = $this->postIn()["origin"];
-    //                     $data["destination"] = $this->postIn()["destination"];
-    //                     $data["coverage_cod"] = $value->coverage_cod == 1 ? true : false;
-
-    //                     $finalKG = $weight;
-    //                     $volumetricKG = 0;
-
-    //                     if (isset($this->postIn()["volumetric"]) && $this->postIn()["volumetric"] !== null) {
-    //                         $volumetricKG = volumetrict_kg($this->postIn()["volumetric"], $services->kilo_driver);
-    //                         if ($volumetricKG > $weight) {
-    //                             $finalKG = $volumetricKG;
-    //                         }
-    //                     }
-
-    //                     $getMinKilo = $this->cost_m->minimumKilo($value->origin_branch_code, $value->destination_branch_code, $value->service_type_code)->row();
-    //                     $minimumKilo = 1;
-    //                     if ($getMinKilo) {
-    //                         $minimumKilo = $getMinKilo->min_kilo;
-    //                     }
-
-    //                     //jika DRGREG/Cargo final kilogram nya harus minimal minimum kilo
-    //                     if ($value->service_type_code === "DRGREG") {
-    //                         if ($finalKG < $minimumKilo) {
-    //                             $finalKG = $minimumKilo;
-    //                         }
-    //                     }
-
-    //                     $packingCost = 0;
-
-    //                     $contract = $this->getContractShipment()->contract;
-    //                     $packingType = $this->checkPackingType($this->postIn()["packing_type_code"]);
-
-    //                     $contractId = (isset($contract->contract_id) || $this->getContractShipment()->contract->contract_id != false) ? $this->getContractShipment()->contract->contract_id : null;
-
-    //                     if (isset($packingType)) {
-    //                         $packingCost = packing_cost($packingType->packing_type_code, $this->postIn()["volumetric"], $finalKG, $contractId);
-    //                     }
-
-    //                     $discount = ($this->getContractShipment()->is_discount === true) ? $this->getDiscount($contract, $value->service_type_code) : 0;
-
-    //                     $insuranceAdminCost = 0;
-    //                     $insuranceCost = 0;
-    //                     if (isset($this->postIn()["insurance_type_code"])) {
-    //                         if ($this->insurancePercentage($this->postIn()) === FALSE) {
-    //                             return $this->response([
-    //                                 "status" => FALSE,
-    //                                 "message" => "Tipe Asuransi Tidak Ditemukan."
-    //                             ], RestController::HTTP_NOT_FOUND);
-    //                         }
-
-    //                         $insuranceAdminCost = 2000;
-    //                         $insuranceCost = ($this->insurancePercentage($this->postIn())/100) * $this->postIn()["item_value"];
-    //                     }
-
-    //                     $totalCost = (($value->cost - ($discount / 100)) * $finalKG) + $packingCost + $insuranceCost + $insuranceAdminCost;
-
-    //                     $data["services"][] = [
-    //                         "minimum_kilo" => $minimumKilo,
-    //                         "insurance_kilo" => $insuranceCost,
-    //                         "insurance_admin_cost" => $insuranceAdminCost,
-    //                         "volumetric_kg" => $volumetricKG,
-    //                         "packing_cost" => $packingCost,
-    //                         "weight" => $weight,
-    //                         "final_weight" => $finalKG,
-    //                         "kilo_driver" => $services->kilo_driver,
-    //                         "cost" => $value->cost,
-    //                         "discount" => $discount . "%",
-    //                         "total_cost" => $totalCost,
-    //                         "service_type_code" => $value->service_type_code,
-    //                         "service_type_name" => $services->descriptions,
-    //                         "sla" => str_replace("-", " - ", str_replace(" ", "", $value->lead_time)) . " Hari"
-    //                     ];
-    //                 }
-
-    //                 return $this->response([
-    //                     "status" => TRUE,
-    //                     "data" => $data,
-    //                     "message" => "Showing Result"
-    //                 ], RestController::HTTP_OK);
-    //             } else {
-    //                 return $this->response([
-    //                     "status" => false,
-    //                     "message" => "Harga Tidak Dapat Ditemukan"
-    //                 ], RestController::HTTP_INTERNAL_ERROR);
-    //             }
-    //         } else {
-    //             return $this->response([
-    //                 "status" => false,
-    //                 "message" => $this->inputValidation($this->postIn())
-    //             ], RestController::HTTP_NOT_ACCEPTABLE);
-    //         }
-    //     } catch (\Throwable $th) {
-    //         return $this->response([
-    //             "status" => false,
-    //             "message" => strval($th)
-    //         ], RestController::HTTP_INTERNAL_ERROR);
-    //     }
-    // }
 
     private function _getContract($customerCode = NULL)
     {
@@ -358,7 +136,7 @@ class Shipment_cost extends RestController
         $maxSLA = "";
         $splitSLA = explode("-", $sla);
         if (isset($splitSLA) && isset($splitSLA[0])) {
-            $maxSLA = trim($splitSLA[0]);
+            $maxSLA = trim($splitSLA[1]);
         } else {
             $maxSLA = "";
         }
@@ -484,7 +262,6 @@ class Shipment_cost extends RestController
         $customResult["price_array"] = $priceListArray;
 
         return $this->response($customResult, RestController::HTTP_OK);
-        // return $this->response($this->_getPublish('', '', $customerCode, $costType), RestController::HTTP_OK);
     }
 }
  
