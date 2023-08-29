@@ -201,27 +201,27 @@ class Pickup extends RestController
                     "message" => validation_errors()
                 ], RestController::HTTP_NOT_ACCEPTABLE);
             }
-    
+
             $this->_isAWBNoExist();
-    
+
             if ($this->_isProductCodeFound() == FALSE) {
                 return $this->response([
                     "status" => "fail",
                     "message" => "SERVICE TYPE CODE TIDAK DITEMUKAN"
                 ], RestController::HTTP_NOT_FOUND);
             }
-    
+
             if ($this->_isShipmentTypeCodeValid() == FALSE) {
                 return $this->response([
                     "status" => "fail",
                     "message" => "SHIPMENT TYPE CODE TIDAK DITEMUKAN"
                 ], RestController::HTTP_NOT_FOUND);
             }
-    
+
             $pickupDistrictCode = empty($this->_apiuser->pickup_district_code_default) ? $this->post("pickup_district_code") : $this->_apiuser->pickup_district_code_default;
             $destinationDistrictCode = $this->post("destination_district_code");
             $returnDistrictCode = $this->post("return_district_code");
-    
+
             if ($this->_apiuser->mapping_destination_district_type == 1) { // mapping using client district name
                 $mappingPickup = $this->pickup_m->getDistrictMappingByName($this->post("pickup_district_name"), $this->post("pickup_city_name"), $this->post("pickup_province_name"), $this->_apiuser->district_mapping_code);
                 if ($mappingPickup) {
@@ -236,7 +236,7 @@ class Pickup extends RestController
                 }
             } else if ($this->_apiuser->mapping_destination_district_type == 2) { // mapping using client district code
                 $mappingPickup = $this->pickup_m->getDistrictMappingByCode($pickupDistrictCode, $this->_apiuser->district_mapping_code);
-    
+
                 if ($mappingPickup) {
                     if ($mappingPickup->mapping_api_type == 1 || $mappingPickup->mapping_api_type == NULL) {
                         $pickupDistrictCode = $mappingPickup->district_code;
@@ -247,7 +247,7 @@ class Pickup extends RestController
                     $pickupDistrictCode = NULL;
                 }
             }
-    
+
             if ($this->_apiuser->mapping_destination_district_type == 1) { // mapping using client district name
                 $mappingPickup = $this->pickup_m->getDistrictMappingByName($this->post("pickup_district_name"), $this->post("pickup_city_name"), $this->post("pickup_province_name"), $this->_apiuser->district_mapping_code);
                 if ($mappingPickup) {
@@ -262,7 +262,7 @@ class Pickup extends RestController
                 }
             } else if ($this->_apiuser->mapping_destination_district_type == 2) { // mapping using client district code
                 $mappingPickup = $this->pickup_m->getDistrictMappingByCode($destinationDistrictCode, $this->_apiuser->district_mapping_code);
-    
+
                 if ($mappingPickup) {
                     if ($mappingPickup->mapping_api_type == 1 || $mappingPickup->mapping_api_type == NULL) {
                         $destinationDistrictCode = $mappingPickup->district_code;
@@ -273,12 +273,12 @@ class Pickup extends RestController
                     $destinationDistrictCode = NULL;
                 }
             }
-    
+
             $returnDistrict = NULL;
             if ($returnDistrict || $this->_validateParamReturnDistrictName()) {
                 if ($this->_apiuser->mapping_return_district_type == 1) {
                     $mappingDestination = $this->pickup_m->getDistrictMappingByName($this->post("return_district_name"), $this->post("return_city_name"), $this->post("return_province_name"), $this->_apiuser->district_mapping_code);
-    
+
                     if ($mappingDestination) {
                         $returnDistrictCode = $mappingDestination->district_code;
                     } else {
@@ -286,14 +286,14 @@ class Pickup extends RestController
                     }
                 } else if ($this->_apiuser->mapping_return_district_type == 2) {
                     $mappingDestination = $this->pickup_m->getDistrictMappingByCode($this->post("return_district_code"), $this->_apiuser->district_mapping_code);
-    
+
                     if ($mappingDestination) {
                         $returnDistrictCode = $mappingDestination->district_code;
                     } else {
                         $returnDistrictCode = NULL;
                     }
                 }
-    
+
                 $returnDistrict = $this->pickup_m->checkDistrict(trim($returnDistrictCode));
                 if (!$returnDistrict) {
                     return $this->response([
@@ -301,15 +301,15 @@ class Pickup extends RestController
                         "message" => "KODE KECAMATAN RETURN (@return_district_code) TIDAK DITEMUKAN"
                     ], RestController::HTTP_NOT_FOUND);
                 }
-    
+
                 if ($returnDistrict) {
                     $this->_validateParamReturnAddress();
                 }
             }
-    
+
             $pickupDistrict = $this->pickup_m->checkDistrict(trim($pickupDistrictCode));
             $destinationDistrict = $this->pickup_m->checkDistrict(trim($destinationDistrictCode));
-    
+
             if (!$pickupDistrict) {
                 return $this->response([
                     "status" => "fail",
@@ -335,7 +335,7 @@ class Pickup extends RestController
                 $awbPrefix = $this->_apiuser->awb_prefix;
                 $isPickup = $this->_apiuser->pickup_rowstate;
                 $flagNewAWB = NULL;
-    
+
                 // tidak menggunakan @parameter customer_code yang dikirim dari API
                 // maka pakai @parameter customer_code_cod | customer_code_non_cod dari DB
                 if ($this->_apiuser->is_used_customer_code_api == 0) { // menggunakan customer code dari DB
@@ -367,14 +367,14 @@ class Pickup extends RestController
                             "message" => "Customer " . $customerCode . " Not Found"
                         ], RestController::HTTP_NOT_FOUND);
                     }
-    
+
                     if ($getCustomer->flag_api == 0) {
                         return $this->response([
                             "status" => "fail",
                             "message" => "Customer " . $customerCode . " Not Ready Yet"
                         ], RestController::HTTP_NOT_FOUND);
                     }
-    
+
                     if ($getCustomer->cod_flag != $this->post("cod_flag")) {
                         return $this->response([
                             "status" => "fail",
@@ -382,21 +382,21 @@ class Pickup extends RestController
                         ], RestController::HTTP_NOT_FOUND);
                     }
                 }
-    
+
                 if ($getCustomer->rowstate == 3) {
                     return $this->response([
                         "message" => "Customer Suspended",
                         "status" => "fail"
                     ], RestController::HTTP_NOT_FOUND);
                 }
-    
+
                 if ($this->post("cod_flag") == 2 && $destinationDistrict->coverage_cod != 1) {
                     return $this->response([
                         "status" => "fail",
                         "message" => "Destination District Code not covered for COD"
                     ], RestController::HTTP_NOT_FOUND);
                 }
-    
+
                 $customerCodeName = $customerCode . " - " . $getCustomer->customer_name;
                 $flagNewAWB = !empty($getCustomer->flag_new_awb) ? $getCustomer->flag_new_awb : NULL;
                 $flagPhoto = ($getCustomer->flag_photo == 1) ? 1 : NULL;
@@ -404,14 +404,14 @@ class Pickup extends RestController
                 $flagSMS = $getCustomer->flag_sms;
                 $flagSMSIncoming = $getCustomer->flag_sms_incoming;
                 $flagSMSPOD = $getCustomer->flag_sms_pod;
-    
+
                 $pickupBranchCode = $pickupDistrict->branch_code;
                 $pickupDistrictCode = $pickupDistrict->district_code;
-    
+
                 $flagTrackingPickup = $this->_apiuser->flag_tracking_pickup;
                 $pickupPlace = $this->_apiuser->pickup_place;
                 $isReferenceMoveToAwb = $this->_apiuser->is_reference_move_to_awb;
-    
+
                 // mapping district_code seller yang salah
                 if ($this->_apiuser->is_fix_seller_district_code == 1) {
                     $fixSellerDistrict = $this->pickup_m->fixSellerDistrict($this->_apiuser->api_code);
@@ -421,9 +421,9 @@ class Pickup extends RestController
                         $pickupBranchCode = $sellerDistrict->branch_code;
                     }
                 }
-    
+
                 $this->db->trans_start();
-    
+
                 if ($isPickup == 1) {
                     $awbRowstate = 1;
                     $pickupRowstate = 1;
@@ -436,25 +436,25 @@ class Pickup extends RestController
                         $awbRowstate = 1; // pickup
                         $pickupRowstate = 1; // entri
                     }
-    
+
                     $directToVerification = 0;
                 }
-    
+
                 $koli = 1;
                 if (!empty($this->_apiuser->default)) { // ad default koli
                     $koli = 1;
                 } else {
                     $koli = $this->post("quantity");
                 }
-    
+
                 $packingTypeCode = $this->post("packing_type_code");
                 if ($this->_defaultPackingNULL($this->_apiuser->api_key)) {
                     $packingTypeCode = NULL;
                 }
-    
+
                 // roud up or round down kilo
                 $kilo = $this->_roundKG($this->post("weight"));
-    
+
                 $dataPickup = [
                     "customer_code" => $customerCode,
                     "pickup_date" => date("Y-m-d H:i:s"),
@@ -478,13 +478,13 @@ class Pickup extends RestController
                     "pickup_place" => $pickupPlace,
                     "direct_to_verification" => $pickupRowstate
                 ];
-    
+
                 $this->pickup_m->insertPickup($dataPickup);
                 $lastPickupID = $this->db->insert_id();
                 $pickupNo = "PUP" . (empty($pickupDistrict) ? "CGK" : $pickupDistrict->branch_code) . str_pad($lastPickupID, 10, "0", STR_PAD_LEFT);
-    
+
                 $this->pickup_m->updatePickup($lastPickupID, $pickupNo);
-    
+
                 $dataAWB = [
                     "awb_no" => $this->post("awb_no"),
                     "awb_parent_no" => $this->post("awb_parent_no"),
@@ -539,7 +539,7 @@ class Pickup extends RestController
                     "flag_sms" => $flagSMS,
                     "flag_sms_incoming" => $flagSMSIncoming,
                     "flag_sms_pod" => $flagSMSPOD,
-    
+
                     "return_origin_district_code" => !empty($returnDistrict) ? $returnDistrict->district_code : NULL,
                     "return_address" => $this->post("return_address"),
                     "return_address" => $this->post("return_address"),
@@ -567,7 +567,7 @@ class Pickup extends RestController
                 }
 
                 $this->pickup_m->updatePickupWithNewAWB($lastPickupID, $pickupNo, $awbNo);
-    
+
                 $dataPickupAWB = [
                     "pickup_no" => $pickupNo,
                     "awb_no" => $awbNo,
@@ -575,9 +575,9 @@ class Pickup extends RestController
                 ];
 
                 $this->pickup_m->insertPickupAWB($dataPickupAWB);
-    
+
                 $this->db->trans_complete();
-    
+
                 if ($this->db->trans_status() === FALSE) {
                     return $this->response("trans_status === FALSE", RestController::HTTP_BAD_REQUEST);
                 } else {
@@ -587,11 +587,11 @@ class Pickup extends RestController
                         "origin_branch_code" => $pickupBranchCode,
                         "destination_branch_code" => $destinationDistrict->branch_code,
                     ];
-    
+
                     if ($this->_apiuser->flag_label == 1) {
                         $msg["label"] = $this->_apiuser->url_label . $this->post("awb_no") . "&api_key=" . $this->_apiuser->api_key;
                     }
-    
+
                     return $this->response([
                         "status" => "success",
                         "data" => $msg,
@@ -603,6 +603,136 @@ class Pickup extends RestController
         } catch (\Throwable $th) {
             return $this->response([
                 "status" => "fail",
+                "message" => strval($th)
+            ]);
+        }
+    }
+
+    private function _validateCancelPickup($awbNo, $desc)
+    {
+        if (empty($awbNo)) {
+            return $this->response([
+                "status" => "fails",
+                "message" => "AWB NO. TIDAK BOLEH KOSONG."
+            ], RestController::HTTP_NOT_ACCEPTABLE);
+        }
+
+        if (empty($desc)) {
+            return $this->response([
+                "status" => "fails",
+                "message" => "DESC TIDAK BOLEH KOSONG."
+            ], RestController::HTTP_NOT_ACCEPTABLE);
+        }
+    }
+
+    public function cancel_post()
+    {
+        try {
+            $awbNo = $this->post("awb_no");
+            $desc = $this->post("desc");
+            $dateNow = date("Y-m-d H:i:s");
+            $username = $this->_apiuser->api_code;
+
+            $this->_validateCancelPickup($awbNo, $desc);
+
+            $r = $this->pickup_m->checkAWBPickupNo($awbNo);
+
+            if (!$r || empty($r)) {
+                return $this->response([
+                    "status" => "fails",
+                    "message" => "AWB NO (PICKUP) " . $awbNo . " TIDAK DITEMUKAN"
+                ], RestController::HTTP_NOT_FOUND);
+            }
+            
+            $r2 = $this->pickup_m->getAWBDetail($awbNo);
+            if (!$r2 || $r2 == "") {
+                return $this->response([
+                    "status" => "fails",
+                    "message" => "AWB NO (AWB) " . $awbNo . " TIDAK DITEMUKAN"
+                ], RestController::HTTP_NOT_FOUND);
+            }
+
+            if ($r2->rowstate > 8 && $r2->rowstate < 20) {
+                return $this->response([
+                    "status" => "fails",
+                    "message" => "AWB NO " . $awbNo . " SUDAH PERNAH POD",
+                    "data" => $r2
+                ], RestController::HTTP_FORBIDDEN);
+            }
+
+            $this->db->trans_start();
+            // tambah validasi , 
+            //  jika status entry verified atau kurang dari entry verified , mengupdate void pickup
+            $rowstate = "20";
+            if ($r2->rowstate <= 3) {
+                $rowstate = "25";
+
+                // update tb_pickup
+                $dataPickup = [
+                    "pickup_status" => "GAGAL",
+                    "pickup_reason_code" => "GL002",
+                    "pickup_master_no" => NULL,
+                    "void_type_code" => "VOID_CANCEL_ORDER",
+                    "pickup_status_desc" => $desc,
+                    "pickup_status_date" => $dateNow,
+                    "pickup_from_name" => "-"
+                ];
+                $this->pickup_m->updatePickupToVoid($dataPickup, $r->pickup_no);
+
+                // insert tb_pickup_detail
+                $dataPickupDetail = [
+                    "awb_no" => $awbNo,
+                    "create_date" => $dateNow,
+                    "pickup_status" => "GAGAL",
+                    "pickup_desc" => $desc,
+                    "user_inp" => $username
+                ];
+                $this->pickup_m->insertPickupDetail($dataPickupDetail);
+            }
+
+            // update tb_awb
+            $dataAWB = [
+                "rowstate" => $rowstate,
+                "user_update" => $username,
+                "last_update" => $dateNow
+            ];
+            $this->pickup_m->updateAWBToVoid($awbNo, $dataAWB);
+
+            // insert tb_tracking
+            $dataTracking = [
+                "tracking_process" => $rowstate,
+                "awb_no" => $awbNo,
+                "tracking_doc_no" => $awbNo,
+                "branch_code" => $r2->origin_branch_code,
+                "counter_code" => $r2->origin_counter_code,
+                "reference_no" => $awbNo,
+                "description" => "[VOID BY: " . $username . "] [KET: " . $desc . "]",
+                "create_date" => $dateNow,
+                "user_inp" => $username
+            ];
+            $this->pickup_m->insertTracking($dataTracking);
+
+            $this->db->trans_complete();
+
+            if ($this->db->trans_status() === FALSE) {
+                return $this->response([
+                    "status" => "error",
+                    "message" => "Transaction failed, pleaes try again"
+                ], RestController::HTTP_INTERNAL_ERROR);
+            } else {
+                return $this->response([
+                    "status" => "success",
+                    "data" => [
+                        "awb_no" => $awbNo,
+                        "cancel_date" => $dateNow,
+                    ],
+                    "message" => "Cancel Order Success"
+                ], RestController::HTTP_OK);
+            }
+
+        } catch (\Throwable $th) {
+            return $this->response([
+                "status" => "fails",
                 "message" => strval($th)
             ]);
         }

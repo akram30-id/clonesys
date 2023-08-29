@@ -1,5 +1,7 @@
 <?php
 
+use PHPUnit\Framework\MockObject\Stub\ReturnReference;
+
 defined("BASEPATH") or exit("NO DIRECT SCRIPT IS ALLOWED");
 
 class Pickup_m extends CI_Model
@@ -104,6 +106,46 @@ class Pickup_m extends CI_Model
     {
         $this->db->where("awb_id", $id);
         $this->db->update("tb_awb", ["awb_no" => $awbNo, "awb_parent_no" => $awbParentNo]);
+    }
+
+    function checkAWBPickupNo($awbNo)
+    {
+        $this->db->select("a.pickup_no");
+        $this->db->select("b.awb_no");
+        $this->db->from("tb_pickup AS a");
+        $this->db->join("tb_awb AS b", "b.pickup_no=a.pickup_no");
+        $this->db->where("b.awb_no", $awbNo);
+        return $this->db->get()->row();
+    }
+
+    function getAWBDetail($awbNo)
+    {
+        $this->db->select("awb_no, pod_no, rowstate, origin_branch_code, origin_counter_code");
+        $this->db->from("tb_awb");
+        $this->db->where("awb_no", $awbNo);
+        return $this->db->get()->row();
+    }
+
+    function updatePickupToVoid($data, $pickupNo)
+    {
+        $this->db->where("pickup_no", $pickupNo);
+        $this->db->update("tb_pickup", $data);
+    }
+
+    function insertPickupDetail($data)
+    {
+        $this->db->insert("tb_pickup_detail", $data);
+    }
+
+    function updateAWBToVoid($awbNo, $data)
+    {
+        $this->db->where("awb_no", $awbNo);
+        $this->db->update("tb_awb", $data);
+    }
+
+    function insertTracking($data)
+    {
+        $this->db->insert("tb_tracking", $data);
     }
 }
 
